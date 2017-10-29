@@ -1,0 +1,53 @@
+{
+  "name": "bdb",
+  "version": "0.0.0",
+  "description": "Database for bcoin",
+  "keywords": [
+    "database",
+    "db",
+    "leveldb",
+    "leveldown",
+    "levelup"
+  ],
+  "license": "MIT",
+  "repository": "git://github.com/bcoin-org/bdb.git",
+  "homepage": "https://github.com/bcoin-org/bdb",
+  "bugs": {
+    "url": "https://github.com/bcoin-org/bdb/issues"
+  },
+  "author": "Christopher Jeffrey <chjjeffrey@gmail.com>",
+  "main": "./lib/bdb.js",
+  "scripts": {
+    "browserify": "browserify -s bdb lib/bdb.js | uglifyjs -c > bdb.js",
+    "clean": "rm -f bdb.js",
+    "lint": "eslint lib/ test/ || exit 0",
+    "test": "mocha --reporter spec test/*-test.js",
+    "webpack": "webpack --config webpack.config.js"
+  },
+  "optionalDependencies": {
+    "leveldown": "1.7.2"
+  },
+  "devDependencies": {
+    "babelify": "^7.3.0",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
+    "browserify": "^14.5.0",
+    "eslint": "^4.9.0",
+    "mocha": "^4.0.1",
+    "uglifyjs-webpack-plugin": "^1.0.0-beta.3",
+    "uglify-es": "^3.1.3",
+    "webpack": "^3.8.1"
+  },
+  "engines": {
+    "node": ">=7.6.0"
+  },
+  "browser": {
+    "./lib/backends": "./lib/backends-browser.js"
+  },
+  "browserify": {
+    "transform": [
+      "babelify"
+    ]
+  }
+}
