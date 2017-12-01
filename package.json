@@ -44,7 +44,8 @@
     "node": ">=7.6.0"
   },
   "browser": {
-    "./lib/backends": "./lib/backends-browser.js"
+    "./lib/backends": "./lib/backends-browser.js",
+    "./lib/key": "./lib/key-browser.js"
   },
   "browserify": {
     "transform": [
