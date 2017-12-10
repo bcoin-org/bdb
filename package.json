@@ -24,8 +24,8 @@
     "test": "mocha --reporter spec test/*-test.js",
     "webpack": "webpack --config webpack.config.js"
   },
-  "optionalDependencies": {
-    "leveldown": "1.7.2"
+  "dependencies": {
+    "leveldown": "2.1.1"
   },
   "devDependencies": {
     "babelify": "^7.3.0",
@@ -44,7 +44,7 @@
     "node": ">=7.6.0"
   },
   "browser": {
-    "./lib/backends": "./lib/backends-browser.js"
+    "./lib/level": "./lib/level-browser.js"
   },
   "browserify": {
     "transform": [
