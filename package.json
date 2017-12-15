@@ -28,16 +28,15 @@
     "leveldown": "2.1.1"
   },
   "devDependencies": {
-    "babelify": "^7.3.0",
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",
     "babel-preset-env": "^1.6.1",
+    "babelify": "^7.3.0",
     "browserify": "^14.5.0",
     "eslint": "^4.9.0",
-    "level-js": "^2.2.4",
     "mocha": "^4.0.1",
-    "uglifyjs-webpack-plugin": "^1.0.0-beta.3",
     "uglify-es": "^3.1.3",
+    "uglifyjs-webpack-plugin": "^1.0.0-beta.3",
     "webpack": "^3.8.1"
   },
   "engines": {
