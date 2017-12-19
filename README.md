@@ -5,18 +5,16 @@ Database for bcoin.
 ## Usage
 
 ``` js
-const BDB = require('bdb');
+const bdb = require('bdb');
 
-const db = new BDB({
-  location: 'mydb',
-  db: 'leveldb',
-  // Standard leveldown options
+const db = bdb.create({
+  location: './mydb'
 });
 
 await db.open();
 
-const root = db.key('r');
-const rec = db.key('t', ['hash160', 'uint32']);
+const root = bdb.key('r');
+const rec = bdb.key('t', ['hash160', 'uint32']);
 
 const bucket = db.bucket(root.build());
 const batch = bucket.batch();
