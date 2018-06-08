@@ -1,6 +1,6 @@
 {
   "name": "bdb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Database for bcoin",
   "keywords": [
     "database",
@@ -22,25 +22,26 @@
     "clean": "rm -f bdb.js",
     "lint": "eslint lib/ test/ || exit 0",
     "test": "mocha --reporter spec test/*-test.js",
-    "webpack": "webpack --config webpack.config.js"
+    "webpack": "webpack --mode production --config webpack.config.js"
   },
   "dependencies": {
-    "leveldown": "3.0.0"
+    "leveldown": "4.0.1"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
+    "babel-core": "^6.26.3",
     "babel-loader": "^7.1.4",
-    "babel-preset-env": "^1.6.1",
+    "babel-preset-env": "^1.7.0",
     "babelify": "^8.0.0",
-    "browserify": "^16.1.1",
-    "eslint": "^4.18.2",
-    "mocha": "^5.0.4",
+    "browserify": "^16.2.2",
+    "eslint": "^4.19.1",
+    "mocha": "^5.2.0",
     "uglify-es": "^3.3.9",
-    "uglifyjs-webpack-plugin": "^1.2.3",
-    "webpack": "^4.1.1"
+    "uglifyjs-webpack-plugin": "^1.2.5",
+    "webpack": "^4.11.1",
+    "webpack-cli": "^3.0.3"
   },
   "engines": {
-    "node": ">=7.6.0"
+    "node": ">=8.0.0"
   },
   "browser": {
     "./lib/level": "./lib/level-browser.js"
