@@ -17,6 +17,8 @@
           }]
         , ['OS == "linux"', {
               'cflags': [
+                '-Wno-parentheses',
+                '-Wno-cast-function-type'
               ]
             , 'cflags!': [ '-fno-tree-vrp']
           }]
