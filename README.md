@@ -1,28 +1,25 @@
 # bdb
 
-Database for bcoin.
+Database for bcoin (leveldown backend).
 
 ## Usage
 
 ``` js
 const bdb = require('bdb');
-
-const db = bdb.create({
-  location: './mydb'
-});
+const db = bdb.create('/path/to/my.db');
 
 await db.open();
 
-const root = bdb.key('r');
-const rec = bdb.key('t', ['hash160', 'uint32']);
+const myPrefix = bdb.key('r');
+const myKey = bdb.key('t', ['hash160', 'uint32']);
 
-const bucket = db.bucket(root.build());
+const bucket = db.bucket(myPrefix.encode());
 const batch = bucket.batch();
 
 const hash = Buffer.alloc(20, 0x11);
 
 // Write `foo` to `rt[1111111111111111111111111111111111111111][00000000]`.
-batch.put(rec.build(hash, 0), Buffer.from('foo'));
+batch.put(myKey.encode(hash, 0), Buffer.from('foo'));
 
 await batch.write();
 
@@ -30,21 +27,20 @@ await batch.write();
 // From: `rt[0000000000000000000000000000000000000000][00000000]`
 // To: `rt[ffffffffffffffffffffffffffffffffffffffff][ffffffff]`
 const iter = bucket.iterator({
-  gte: rec.min(),
-  lte: rec.max(),
+  gte: myKey.min(),
+  lte: myKey.max(),
   values: true
 });
 
 await iter.each((key, value) => {
   // Parse each key.
-  const [hash, uint] = rec.parse(key);
+  const [hash, index] = myKey.decode(key);
   console.log('Hash: %s', hash);
-  console.log('Uint: %d', uint);
-  console.log('Value: %s', value.toString('ascii'));
+  console.log('Index: %d', index);
+  console.log('Value: %s', value.toString());
 });
 
 await db.close();
-
 ```
 
 ## Contribution and License Agreement
@@ -56,5 +52,9 @@ all code is your original work. `</legalese>`
 ## License
 
 - Copyright (c) 2017, Christopher Jeffrey (MIT License).
+
+Parts of this software are based on leveldown:
+
+- Copyright (c) 2017, Rod Vagg (MIT License).
 
 See LICENSE for more info.
