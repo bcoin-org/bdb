@@ -22,7 +22,7 @@
     "test": "mocha --reporter spec test/*-test.js"
   },
   "dependencies": {
-    "bsert": "~0.0.3",
+    "bsert": "~0.0.4",
     "leveldown": "4.0.1"
   },
   "devDependencies": {
