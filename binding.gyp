@@ -1,6 +1,15 @@
 {
     "targets": [{
       "target_name": "leveldown"
+    , "cflags": [
+        "-Wno-deprecated-declarations"
+      ]
+    , "xcode_settings": {
+        "OTHER_CFLAGS": [
+          "-Wno-deprecated-declarations"
+        ]
+      }
+    , "msvs_disabled_warnings": [4996]
     , "conditions": [
           ["OS == 'win'", {
               "defines": [
