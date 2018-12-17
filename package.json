@@ -17,7 +17,7 @@
   "main": "./lib/bdb.js",
   "scripts": {
     "install": "node-gyp rebuild",
-    "lint": "eslint lib/ || exit 0",
+    "lint": "eslint lib/ test/ || exit 0",
     "test": "bmocha --reporter spec test/*-test.js"
   },
   "dependencies": {

@@ -1,3 +1,6 @@
+/* eslint-env mocha */
+/* eslint prefer-arrow-callback: "off" */
+
 'use strict';
 
 const assert = require('assert');
@@ -116,8 +119,12 @@ describe('BDB', function() {
 
       for (let i = 0; i < vectors.length; i++) {
         const vector = vectors[i];
-        const key = nkey.encode(Buffer.from(vector.key[0], 'hex'), vector.key[1]);
+
+        const key = nkey.encode(Buffer.from(vector.key[0], 'hex'),
+                                vector.key[1]);
+
         const value = Buffer.from(vector.value, 'hex');
+
         batch.put(key, value);
       }
 
@@ -137,7 +144,7 @@ describe('BDB', function() {
         assert.equal(hash.toString('hex'), vectors[i].key[0]);
         assert.equal(index, vectors[i].key[1]);
       }
-    })
+    });
 
     it('in reverse order', async () => {
       const keys = await bucket.keys({
