@@ -1,7 +1,6 @@
 build/
 node_modules/
 npm-debug.log
-package-lock.json
 node_modules/
 build/
 build-pre-gyp/
@@ -16,6 +15,7 @@ leakydb
 *.obj
 *.1sdk.pdb
 *.lastbuildstate
+*~
 npm-debug.log
 prebuilds/
 yarn.lock
