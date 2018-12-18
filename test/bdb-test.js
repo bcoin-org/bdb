@@ -5,7 +5,7 @@
 
 const assert = require('bsert');
 const bdb = require('../');
-const vectors = require('./vectors.json');
+const vectors = require('./data/vectors.json');
 
 describe('BDB', function() {
   const num = (Math.random() * 0x100000000) >>> 0;
