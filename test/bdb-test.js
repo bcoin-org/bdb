@@ -3,15 +3,13 @@
 
 'use strict';
 
-const assert = require('assert');
-const {randomBytes} = require('crypto');
-
-const bdb = require('..');
-
+const assert = require('bsert');
+const bdb = require('../');
 const vectors = require('./vectors.json');
 
 describe('BDB', function() {
-  const dbpath = `/tmp/bdb-test-${randomBytes(4).toString('hex')}.db`;
+  const num = (Math.random() * 0x100000000) >>> 0;
+  const dbpath = `/tmp/bdb-test-${num}.db`;
   const tkey = bdb.key('t', ['hash160', 'uint32']);
   const prefix = bdb.key('r');
 
@@ -21,7 +19,6 @@ describe('BDB', function() {
     db = bdb.create(dbpath);
     await db.open();
     assert.equal(db.location, dbpath);
-    assert.equal(db.leveldown, true);
     assert.equal(db.loading, false);
     assert.equal(db.loaded, true);
   });
