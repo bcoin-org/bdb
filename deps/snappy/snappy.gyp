@@ -9,6 +9,7 @@
         ["OS=='solaris'", {"os_include": "solaris"}],
         ["OS=='win'",     {"os_include": "win32"}],
         ["OS=='freebsd'", {"os_include": "freebsd"}],
+        ["OS=='netbsd'",  {"os_include": "netbsd"}],
         ["OS=='openbsd'", {"os_include": "openbsd"}]
       ]
     },
@@ -50,6 +51,12 @@
         "cflags!": [ "-fno-tree-vrp" ]
       }],
       ["OS == 'freebsd'", {
+        "cflags": [
+          "-Wno-sign-compare",
+          "-Wno-unused-function"
+        ]
+      }],
+      ["OS == 'netbsd'", {
         "cflags": [
           "-Wno-sign-compare",
           "-Wno-unused-function"
