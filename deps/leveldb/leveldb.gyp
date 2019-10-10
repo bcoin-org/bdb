@@ -17,13 +17,7 @@
         "leveldb-<(ldbversion)/"
       ]
     },
-    "defines": [
-      "HAVE_FDATASYNC=1",
-      "HAVE_FULLFSYNC=0",
-      "HAVE_CRC32C=0",
-      "HAVE_SNAPPY=1",
-      "LEVELDB_IS_BIG_ENDIAN=0"
-    ],
+    "defines": [],
     "include_dirs": [
       "leveldb-<(ldbversion)/",
       "leveldb-<(ldbversion)/include/"
@@ -230,6 +224,7 @@
       "leveldb-<(ldbversion)/include/leveldb/table.h",
       "leveldb-<(ldbversion)/include/leveldb/write_batch.h",
       "leveldb-<(ldbversion)/port/port.h",
+      "leveldb-<(ldbversion)/port/port_config.h",
       "leveldb-<(ldbversion)/port/port_stdcxx.h",
       "leveldb-<(ldbversion)/port/thread_annotations.h",
       "leveldb-<(ldbversion)/table/block_builder.cc",
