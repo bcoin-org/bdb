@@ -161,4 +161,56 @@ describe('BDB', function() {
       }
     });
   });
+
+  describe('thread safety', function() {
+    async function checkError(method, message) {
+      const batch = db.batch();
+      const hash = Buffer.alloc(20, 0x11);
+
+      const value = Buffer.alloc(1024 * 1024);
+      const key = tkey.encode(hash, 12);
+
+      batch.put(key, value);
+      batch.write();
+
+      let err = null;
+
+      try {
+        switch (method) {
+          case 'clear':
+            batch.clear();
+            break;
+          case 'put':
+            batch.put(key, value);
+            break;
+          case 'del':
+            batch.del(key);
+            break;
+          case 'write':
+            await batch.write();
+            break;
+        }
+
+      } catch (e) {
+        err = e;
+      }
+
+      assert(err);
+      assert.equal(err.message, message);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    const methods = {
+      'clear': 'Unsafe batch clear.',
+      'put': 'Unsafe batch put.',
+      'del': 'Unsafe batch del.',
+      'write': 'Unsafe batch write.',
+    };
+
+    for (const [method, message] of Object.entries(methods)) {
+      it(`will check safety of ${method}`, async () => {
+        await checkError(method, message);
+      });
+    }
+  });
 });
