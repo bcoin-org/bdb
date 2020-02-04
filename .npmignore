@@ -27,6 +27,7 @@ leakydb
 node_modules/
 npm-debug.log
 package-lock.json
+patches/
 test-data.db.tar
 test-data.tar
 test/
