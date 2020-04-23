@@ -2,7 +2,7 @@
   "targets": [{
     "target_name": "leveldb",
     "variables": {
-      "ldbversion": "1.20"
+      "ldbversion": "1.22"
     },
     "type": "static_library",
     "standalone_static_library": 1,
@@ -25,6 +25,15 @@
       "leveldb-<(ldbversion)/include/"
     ],
     "conditions": [
+      ["node_byteorder=='big'", {
+        "defines": [
+          "LEVELDB_IS_BIG_ENDIAN=1"
+        ]
+      }, {
+        "defines": [
+          "LEVELDB_IS_BIG_ENDIAN=0"
+        ]
+      }],
       ["OS == 'win'", {
         "conditions": [
           ["MSVS_VERSION != '2015' and MSVS_VERSION != '2013'", {
@@ -54,9 +63,8 @@
         }
       }, {
         "sources": [
-          "leveldb-<(ldbversion)/port/port_posix.cc",
-          "leveldb-<(ldbversion)/port/port_posix.h",
-          "leveldb-<(ldbversion)/util/env_posix.cc"
+          "leveldb-<(ldbversion)/util/env_posix.cc",
+          "leveldb-<(ldbversion)/util/posix_logger.h"
         ],
         "defines": [
           "LEVELDB_PLATFORM_POSIX=1"
@@ -189,14 +197,17 @@
     "sources": [
       "leveldb-<(ldbversion)/db/builder.cc",
       "leveldb-<(ldbversion)/db/builder.h",
+      "leveldb-<(ldbversion)/db/c.cc",
       "leveldb-<(ldbversion)/db/db_impl.cc",
       "leveldb-<(ldbversion)/db/db_impl.h",
       "leveldb-<(ldbversion)/db/db_iter.cc",
       "leveldb-<(ldbversion)/db/db_iter.h",
-      "leveldb-<(ldbversion)/db/filename.cc",
-      "leveldb-<(ldbversion)/db/filename.h",
       "leveldb-<(ldbversion)/db/dbformat.cc",
       "leveldb-<(ldbversion)/db/dbformat.h",
+      "leveldb-<(ldbversion)/db/dumpfile.cc",
+      "leveldb-<(ldbversion)/db/filename.cc",
+      "leveldb-<(ldbversion)/db/filename.h",
+      "leveldb-<(ldbversion)/db/leveldbutil.cc",
       "leveldb-<(ldbversion)/db/log_format.h",
       "leveldb-<(ldbversion)/db/log_reader.cc",
       "leveldb-<(ldbversion)/db/log_reader.h",
@@ -217,11 +228,13 @@
       "leveldb-<(ldbversion)/db/write_batch_internal.h",
       "leveldb-<(ldbversion)/helpers/memenv/memenv.cc",
       "leveldb-<(ldbversion)/helpers/memenv/memenv.h",
+      "leveldb-<(ldbversion)/include/leveldb/c.h",
       "leveldb-<(ldbversion)/include/leveldb/cache.h",
       "leveldb-<(ldbversion)/include/leveldb/comparator.h",
       "leveldb-<(ldbversion)/include/leveldb/db.h",
       "leveldb-<(ldbversion)/include/leveldb/dumpfile.h",
       "leveldb-<(ldbversion)/include/leveldb/env.h",
+      "leveldb-<(ldbversion)/include/leveldb/export.h",
       "leveldb-<(ldbversion)/include/leveldb/filter_policy.h",
       "leveldb-<(ldbversion)/include/leveldb/iterator.h",
       "leveldb-<(ldbversion)/include/leveldb/options.h",
@@ -231,7 +244,8 @@
       "leveldb-<(ldbversion)/include/leveldb/table_builder.h",
       "leveldb-<(ldbversion)/include/leveldb/write_batch.h",
       "leveldb-<(ldbversion)/port/port.h",
-      "leveldb-<(ldbversion)/port/port_posix_sse.cc",
+      "leveldb-<(ldbversion)/port/port_stdcxx.h",
+      "leveldb-<(ldbversion)/port/thread_annotations.h",
       "leveldb-<(ldbversion)/table/block.cc",
       "leveldb-<(ldbversion)/table/block.h",
       "leveldb-<(ldbversion)/table/block_builder.cc",
@@ -261,9 +275,12 @@
       "leveldb-<(ldbversion)/util/filter_policy.cc",
       "leveldb-<(ldbversion)/util/hash.cc",
       "leveldb-<(ldbversion)/util/hash.h",
+      "leveldb-<(ldbversion)/util/histogram.cc",
+      "leveldb-<(ldbversion)/util/histogram.h",
       "leveldb-<(ldbversion)/util/logging.cc",
       "leveldb-<(ldbversion)/util/logging.h",
       "leveldb-<(ldbversion)/util/mutexlock.h",
+      "leveldb-<(ldbversion)/util/no_destructor.h",
       "leveldb-<(ldbversion)/util/options.cc",
       "leveldb-<(ldbversion)/util/random.h",
       "leveldb-<(ldbversion)/util/status.cc"
