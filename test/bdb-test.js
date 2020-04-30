@@ -6,10 +6,12 @@
 const assert = require('bsert');
 const bdb = require('../');
 const vectors = require('./data/vectors.json');
+const os = require('os');
+const path = require('path');
 
 describe('BDB', function() {
   const num = (Math.random() * 0x100000000) >>> 0;
-  const dbpath = `/tmp/bdb-test-${num}.db`;
+  const dbpath = path.join(os.tmpdir(), `bdb-test-${num}.db`);
   const tkey = bdb.key('t', ['hash160', 'uint32']);
   const prefix = bdb.key('r');
 
