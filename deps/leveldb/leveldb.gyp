@@ -35,9 +35,6 @@
         ]
       }],
       ["OS == 'win'", {
-        "include_dirs": [
-          "port-libuv/"
-        ],
         "defines": [
           "LEVELDB_PLATFORM_UV=1",
           "LEVELDB_PLATFORM_WINDOWS=1",
