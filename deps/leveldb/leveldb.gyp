@@ -35,23 +35,17 @@
         ]
       }],
       ["OS == 'win'", {
-        "conditions": [
-          ["MSVS_VERSION != '2015' and MSVS_VERSION != '2013'", {
-            "include_dirs": [ "leveldb-<(ldbversion)/port/win" ]
-          }]
-        ],
         "include_dirs": [
           "port-libuv/"
         ],
         "defines": [
           "LEVELDB_PLATFORM_UV=1",
+          "LEVELDB_PLATFORM_WINDOWS=1",
           "NOMINMAX=1",
           "_HAS_EXCEPTIONS=0"
         ],
         "sources": [
-          "port-libuv/port_uv.cc",
-          "port-libuv/env_win.cc",
-          "port-libuv/win_logger.cc"
+          "leveldb-<(ldbversion)/util/env_windows.cc"
         ],
         "msvs_settings": {
           "VCCLCompilerTool": {
