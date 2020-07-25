@@ -16,7 +16,7 @@
   "author": "Christopher Jeffrey <chjjeffrey@gmail.com>",
   "main": "./lib/bdb.js",
   "scripts": {
-    "install": "cmake-node rebuild --production",
+    "install": "cmake-node rebuild --production --fallback",
     "lint": "eslint lib/ test/ || exit 0",
     "test": "bmocha --reporter spec test/*-test.js"
   },
@@ -30,6 +30,7 @@
   "engines": {
     "node": ">=8.6.0"
   },
+  "gypfile": true,
   "browser": {
     "./lib/level": "./lib/level-browser.js"
   }
