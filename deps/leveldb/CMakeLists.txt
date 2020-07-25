@@ -30,6 +30,10 @@ test_big_endian(LEVELDB_IS_BIG_ENDIAN)
 include(CheckIncludeFile)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 
+set(HAVE_CRC32C 0)
+set(HAVE_SNAPPY 1)
+set(HAVE_TCMALLOC 0)
+
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
 # we're including the header from C++, and feature detection should use the same
@@ -224,7 +228,6 @@ if(HAVE_CLANG_THREAD_SAFETY)
 endif(HAVE_CLANG_THREAD_SAFETY)
 
 add_subdirectory(deps/snappy)
-target_compile_definitions(leveldb PRIVATE HAVE_SNAPPY)
 target_link_libraries(leveldb PRIVATE snappy)
 
 # Needed by port_stdcxx.h

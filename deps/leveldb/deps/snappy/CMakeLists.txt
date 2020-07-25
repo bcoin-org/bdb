@@ -54,6 +54,9 @@ check_include_file("sys/uio.h" HAVE_SYS_UIO_H)
 check_include_file("unistd.h" HAVE_UNISTD_H)
 check_include_file("windows.h" HAVE_WINDOWS_H)
 
+set(HAVE_LIBZ 0)
+set(HAVE_LIBLZO2 0)
+
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("/arch:AVX" HAVE_VISUAL_STUDIO_ARCH_AVX)
 CHECK_CXX_COMPILER_FLAG("/arch:AVX2" HAVE_VISUAL_STUDIO_ARCH_AVX2)
@@ -110,6 +113,9 @@ int main() {
 include(CheckSymbolExists)
 check_symbol_exists("mmap" "sys/mman.h" HAVE_FUNC_MMAP)
 check_symbol_exists("sysconf" "unistd.h" HAVE_FUNC_SYSCONF)
+
+set(HAVE_GTEST 0)
+set(HAVE_GFLAGS 0)
 
 configure_file(
   "cmake/config.h.in"
