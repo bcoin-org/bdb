@@ -10,11 +10,20 @@
         "deps/leveldb/deps/snappy/snappy.cc"
       ],
       "include_dirs": [
+        "deps/leveldb/deps/gyp",
         "deps/leveldb/deps/snappy"
       ],
       "direct_dependent_settings": {
         "include_dirs": [
+          "deps/leveldb/deps/gyp",
           "deps/leveldb/deps/snappy"
+        ],
+        "conditions": [
+          ["OS in 'mac ios linux android freebsd openbsd solaris'", {
+            "defines": [
+              "HAVE_SYS_UIO_H=1"
+            ]
+          }]
         ]
       },
       "defines": [
