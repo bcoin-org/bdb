@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "bsert": "~0.0.10",
-    "cmake-node": "~0.0.16"
+    "cmake-node": "~0.1.0"
   },
   "devDependencies": {
     "bmocha": "^2.1.0"
