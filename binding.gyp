@@ -10,12 +10,12 @@
         "deps/leveldb/deps/snappy/snappy.cc"
       ],
       "include_dirs": [
-        "deps/gyp",
+        "deps/config",
         "deps/leveldb/deps/snappy"
       ],
       "direct_dependent_settings": {
         "include_dirs": [
-          "deps/gyp",
+          "deps/config",
           "deps/leveldb/deps/snappy"
         ],
         "conditions": [
