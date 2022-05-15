@@ -214,4 +214,84 @@ describe('BDB', function() {
       });
     }
   });
+
+  describe('key types', function() {
+    function randomValue() {
+      const buf = Buffer.alloc(4);
+      buf.writeUInt32BE(Math.random() * 0xffffffff);
+      return buf;
+    }
+
+    const valid = [
+      ['char', 'a', 'b', '*'],
+      ['uint8', 0, 100, 255],
+      ['uint16', 0, 65000, 0xffff],
+      ['uint32', 0, 0xffffff00, 0xffffffff],
+      ['uint64', 0, 0x12345678901234, 2**53 - 1],
+      ['buffer', Buffer.alloc(0), Buffer.alloc(100, 0xfe), Buffer.alloc(255, 0x00)]
+    ];
+
+    for (const test of valid) {
+      const type = test.shift();
+      it(`test valid key for type: ${type}`, async () => {
+        for (const keyData of test) {
+          const key = bdb.key('x', [type]);
+          const val = randomValue();
+
+          const b = db.batch();
+          b.put(key.encode(keyData), val);
+          await b.write();
+
+          const gotten = await db.get(key.encode(keyData));
+          assert(gotten.equals(val));
+        }
+      });
+    }
+
+    const invalid = [
+      ['char', 1, 'abc', Buffer.alloc(0)],
+      ['uint8', 'a', -1, 0xff + 1],
+      ['uint16', 'a', -1, 0xffff + 1],
+      ['uint32', 'a', -1, 0xffffffff + 1],
+      ['uint64', 'a', -1, 2**53],
+      ['buffer', 'a', 0xdeadbeef, Buffer.alloc(256, 0x00)]
+    ];
+
+    for (const test of invalid) {
+      const type = test.shift();
+      it(`test invalid key for type: ${type}`, () => {
+        for (const keyData of test) {
+          const key = bdb.key('x', [type]);
+
+          try {
+            key.encode(keyData);
+            assert(false, 'Should throw');
+          } catch (e) {
+            assert(e.message.match(/Invalid (type|length) for database key./));
+          }
+        }
+      });
+    }
+
+    const encoded = [
+      ['0000000000ffffff', Buffer.from('780000000000ffffff', 'hex')],
+      ['00000000ffffffff', Buffer.from('7800000000ffffffff', 'hex')],
+      ['000000ffffffffff', Buffer.from('78000000ffffffffff', 'hex')],
+      ['001fffffffffffff', Buffer.from('78001fffffffffffff', 'hex')]
+    ];
+
+    for (const test of encoded) {
+      const key = bdb.key('x', ['uint64']);
+
+      it(`should encode 64-bit key: ${test[0]}`, () => {
+        const encoded = key.encode(parseInt(test[0], 16));
+        assert.bufferEqual(encoded, test[1]);
+      });
+
+      it(`should decode 64-bit key: ${test[0]}`, () => {
+        const decoded = key.decode(test[1])[0];
+        assert.strictEqual(decoded, parseInt(test[0], 16));
+      });
+    }
+  });
 });
