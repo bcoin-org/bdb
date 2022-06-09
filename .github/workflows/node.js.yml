@@ -1,0 +1,42 @@
+name: Node.js
+on: [push, pull_request]
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Install bslint
+        run: npm i -g bslint
+
+      - name: Lint
+        run: npm run lint-ci
+
+  build:
+    name: Build & Test
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        node: [12.x, 14.x, 16.x, 18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js ${{matrix.node}}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{matrix.node}}
+
+      - name: Update npm
+        run: npm i -g npm
+
+      - name: Install & Build
+        run: npm install
+
+      - name: Test
+        run: npm test

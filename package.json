@@ -18,6 +18,7 @@
   "scripts": {
     "install": "node-gyp rebuild",
     "lint": "eslint lib/ test/ || exit 0",
+    "lint-ci": "eslint lib/ test/",
     "test": "bmocha --reporter spec test/*-test.js"
   },
   "dependencies": {
