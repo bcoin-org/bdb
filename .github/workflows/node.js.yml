@@ -12,10 +12,13 @@ jobs:
           node-version: 18.x
 
       - name: Install bslint
-        run: npm i -g bslint
+        run: npm i -g bslint typescript
 
       - name: Lint
         run: npm run lint
+
+      - name: Lint types
+        run: npm run lint-types
 
   build:
     name: Build & Test
