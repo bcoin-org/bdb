@@ -27,6 +27,21 @@ static void iterator_end_do (napi_env env, Iterator* iterator, napi_value cb);
   Database* database = NULL; \
   NAPI_STATUS_THROWS(napi_get_value_external(env, argv[0], (void**)&database));
 
+#define NAPI_DB_READY_SYNC() do {                       \
+  if (!database->IsOpen()) {                            \
+    napi_throw_error(env, NULL, "Database is closed."); \
+    return 0;                                           \
+  }                                                     \
+} while(0)
+
+#define NAPI_DB_READY_ASYNC() do {                             \
+  if (!database->IsOpen()) {                                   \
+    napi_value argv = CreateError(env, "Database is closed."); \
+    CallFunction(env, callback, 1, &argv);                     \
+    return 0;                                                  \
+  }                                                            \
+} while(0)
+
 #define NAPI_ITERATOR_CONTEXT() \
   Iterator* iterator = NULL; \
   NAPI_STATUS_THROWS(napi_get_value_external(env, argv[0], (void**)&iterator));
@@ -455,6 +470,7 @@ struct Database {
       filterPolicy_(leveldb::NewBloomFilterPolicy(10)),
       currentIteratorId_(0),
       pendingCloseWorker_(NULL),
+      closing_(false),
       ref_(NULL),
       priorityWork_(0) {}
 
@@ -463,6 +479,19 @@ struct Database {
       delete db_;
       db_ = NULL;
     }
+  }
+
+  /**
+   * Main thread method for checking if database is open.
+   */
+
+  bool IsOpen () {
+    // If db_ is NULL, we're closed.
+    // If pendingCloseWorker_ is not NULL, we will close after priority work is done
+    //    pendingCloseWorker_ check is not strictly neccessary as closing_ has bigger
+    //    lifetime, but it's here for clarity.
+    // if closing_ is true, we've started close worker.
+    return db_ != NULL && pendingCloseWorker_ == NULL && closing_ == false;
   }
 
   leveldb::Status Open (const leveldb::Options& options,
@@ -548,6 +577,7 @@ struct Database {
     if (priorityWork_ == 0 && pendingCloseWorker_ != NULL) {
       pendingCloseWorker_->Queue(env);
       pendingCloseWorker_ = NULL;
+      closing_ = true;
     }
   }
 
@@ -559,7 +589,10 @@ struct Database {
   leveldb::Cache* blockCache_;
   const leveldb::FilterPolicy* filterPolicy_;
   uint32_t currentIteratorId_;
+  // We are waiting for priority work to finish before closing.
   BaseWorker *pendingCloseWorker_;
+  // We have queued the pending close worker already.
+  bool closing_;
   std::map< uint32_t, Iterator * > iterators_;
   napi_ref ref_;
 
@@ -892,6 +925,7 @@ static void env_cleanup_hook (void* arg) {
 
     // Having ended the iterators (and released snapshots) we can safely close.
     database->CloseDatabase();
+    database->closing_ = false;
   }
 }
 
@@ -992,6 +1026,13 @@ NAPI_METHOD(db_open) {
   database->blockCache_ = leveldb::NewLRUCache(cacheSize);
 
   napi_value callback = argv[3];
+
+  if (database->IsOpen()) {
+    napi_value argv = CreateError(env, "Database is already open.");
+    CallFunction(env, callback, 1, &argv);
+    NAPI_RETURN_UNDEFINED();
+  }
+
   OpenWorker* worker = new OpenWorker(env, database, callback, location,
                                       createIfMissing, errorIfExists,
                                       compression, writeBufferSize, blockSize,
@@ -1010,12 +1051,18 @@ struct CloseWorker final : public BaseWorker {
   CloseWorker (napi_env env,
                Database* database,
                napi_value callback)
-    : BaseWorker(env, database, callback, "leveldown.db.close") {}
+    : BaseWorker(env, database, callback, "leveldown.db.close") {
+      database->closing_ = true;
+    }
 
   ~CloseWorker () {}
 
   void DoExecute () override {
     database_->CloseDatabase();
+  }
+
+  void DoFinally (napi_env env) override {
+    database_->closing_ = false;
   }
 };
 
@@ -1031,6 +1078,13 @@ NAPI_METHOD(db_close) {
   NAPI_DB_CONTEXT();
 
   napi_value callback = argv[1];
+
+  if (!database->IsOpen()) {
+    napi_value argv = CreateError(env, "Database is already closed.");
+    CallFunction(env, callback, 1, &argv);
+    NAPI_RETURN_UNDEFINED();
+  }
+
   CloseWorker* worker = new CloseWorker(env, database, callback);
 
   if (!database->HasPriorityWork()) {
@@ -1089,10 +1143,13 @@ NAPI_METHOD(db_put) {
   NAPI_ARGV(5);
   NAPI_DB_CONTEXT();
 
+  // NOTE: This callback is moved here and check happens before ToSlice which allocates memory.
+  napi_value callback = argv[4];
+  NAPI_DB_READY_ASYNC();
+
   leveldb::Slice key = ToSlice(env, argv[1]);
   leveldb::Slice value = ToSlice(env, argv[2]);
   bool sync = BooleanProperty(env, argv[3], "sync", false);
-  napi_value callback = argv[4];
 
   PutWorker* worker = new PutWorker(env, database, callback, key, value, sync);
   worker->Queue(env);
@@ -1145,11 +1202,14 @@ NAPI_METHOD(db_get) {
   NAPI_ARGV(4);
   NAPI_DB_CONTEXT();
 
+  // NOTE: This callback is moved here and check happens before ToSlice which allocates memory.
+  napi_value callback = argv[3];
+  NAPI_DB_READY_ASYNC();
+
   leveldb::Slice key = ToSlice(env, argv[1]);
   napi_value options = argv[2];
   const bool asBuffer = BooleanProperty(env, options, "asBuffer", true);
   const bool fillCache = BooleanProperty(env, options, "fillCache", true);
-  napi_value callback = argv[3];
 
   GetWorker* worker = new GetWorker(env, database, callback, key, asBuffer,
                                     fillCache);
@@ -1283,9 +1343,12 @@ NAPI_METHOD(db_del) {
   NAPI_ARGV(4);
   NAPI_DB_CONTEXT();
 
+  // NOTE: This callback is moved here and check happens before ToSlice which allocates memory.
+  napi_value callback = argv[3];
+  NAPI_DB_READY_ASYNC();
+
   leveldb::Slice key = ToSlice(env, argv[1]);
   bool sync = BooleanProperty(env, argv[2], "sync", false);
-  napi_value callback = argv[3];
 
   DelWorker* worker = new DelWorker(env, database, callback, key, sync);
   worker->Queue(env);
@@ -1418,10 +1481,12 @@ NAPI_METHOD(db_approximate_size) {
   NAPI_ARGV(4);
   NAPI_DB_CONTEXT();
 
+  // NOTE: This callback is moved here and check happens before ToSlice which allocates memory.
+  napi_value callback = argv[3];
+  NAPI_DB_READY_ASYNC();
+
   leveldb::Slice start = ToSlice(env, argv[1]);
   leveldb::Slice end = ToSlice(env, argv[2]);
-
-  napi_value callback = argv[3];
 
   ApproximateSizeWorker* worker  = new ApproximateSizeWorker(env, database,
                                                              callback, start,
@@ -1463,9 +1528,12 @@ NAPI_METHOD(db_compact_range) {
   NAPI_ARGV(4);
   NAPI_DB_CONTEXT();
 
+  // NOTE: This callback is moved here and check happens before ToSlice which allocates memory.
+  napi_value callback = argv[3];
+  NAPI_DB_READY_ASYNC();
+
   leveldb::Slice start = ToSlice(env, argv[1]);
   leveldb::Slice end = ToSlice(env, argv[2]);
-  napi_value callback = argv[3];
 
   CompactRangeWorker* worker  = new CompactRangeWorker(env, database, callback,
                                                        start, end);
@@ -1480,6 +1548,7 @@ NAPI_METHOD(db_compact_range) {
 NAPI_METHOD(db_get_property) {
   NAPI_ARGV(2);
   NAPI_DB_CONTEXT();
+  NAPI_DB_READY_SYNC();
 
   leveldb::Slice property = ToSlice(env, argv[1]);
 
@@ -1582,6 +1651,8 @@ NAPI_METHOD(iterator_init) {
   NAPI_ARGV(2);
   NAPI_DB_CONTEXT();
 
+  NAPI_DB_READY_SYNC();
+
   napi_value options = argv[1];
   const bool reverse = BooleanProperty(env, options, "reverse", false);
   const bool keys = BooleanProperty(env, options, "keys", true);
@@ -1623,7 +1694,8 @@ NAPI_METHOD(iterator_seek) {
   NAPI_ITERATOR_CONTEXT();
 
   if (iterator->isEnding_ || iterator->hasEnded_) {
-    napi_throw_error(env, NULL, "iterator has ended");
+    napi_throw_error(env, NULL, "Iterator has ended.");
+    NAPI_RETURN_UNDEFINED();
   }
 
   leveldb::Slice target = ToSlice(env, argv[1]);
@@ -1683,7 +1755,15 @@ NAPI_METHOD(iterator_end) {
   NAPI_ARGV(2);
   NAPI_ITERATOR_CONTEXT();
 
-  iterator_end_do(env, iterator, argv[1]);
+  napi_value callback = argv[1];
+
+  if (iterator->isEnding_ || iterator->hasEnded_) {
+    napi_value argv = CreateError(env, "Iterator has ended.");
+    CallFunction(env, callback, 1, &argv);
+    NAPI_RETURN_UNDEFINED();
+  }
+
+  iterator_end_do(env, iterator, callback);
 
   NAPI_RETURN_UNDEFINED();
 }
@@ -1769,9 +1849,8 @@ NAPI_METHOD(iterator_next) {
   napi_value callback = argv[1];
 
   if (iterator->isEnding_ || iterator->hasEnded_) {
-    napi_value argv = CreateError(env, "iterator has ended");
+    napi_value argv = CreateError(env, "Iterator has ended.");
     CallFunction(env, callback, 1, &argv);
-
     NAPI_RETURN_UNDEFINED();
   }
 
@@ -1823,6 +1902,8 @@ NAPI_METHOD(batch_do) {
   napi_value array = argv[1];
   const bool sync = BooleanProperty(env, argv[2], "sync", false);
   napi_value callback = argv[3];
+
+  NAPI_DB_READY_ASYNC();
 
   uint32_t length;
   napi_get_array_length(env, array, &length);
@@ -1881,6 +1962,10 @@ struct Batch {
     delete batch_;
   }
 
+  bool IsDBOpen () {
+    return database_->IsOpen();
+  }
+
   void Put (leveldb::Slice key, leveldb::Slice value) {
     batch_->Put(key, value);
     hasData_ = true;
@@ -1936,6 +2021,8 @@ NAPI_METHOD(batch_init) {
   NAPI_ARGV(1);
   NAPI_DB_CONTEXT();
 
+  NAPI_DB_READY_SYNC();
+
   Batch* batch = new Batch(database);
 
   napi_value result;
@@ -1952,15 +2039,21 @@ NAPI_METHOD(batch_put) {
   NAPI_ARGV(3);
   NAPI_BATCH_CONTEXT();
 
-  if (!batch->IsShared()) {
-    leveldb::Slice key = ToSlice(env, argv[1]);
-    leveldb::Slice value = ToSlice(env, argv[2]);
-    batch->Put(key, value);
-    DisposeSliceBuffer(key);
-    DisposeSliceBuffer(value);
-  } else {
-    napi_throw_error(env, 0, "Unsafe batch put.");
+  if (!batch->IsDBOpen()) {
+    napi_throw_error(env, 0, "Database is closed.");
+    NAPI_RETURN_UNDEFINED();
   }
+
+  if (batch->IsShared()) {
+    napi_throw_error(env, 0, "Unsafe batch put.");
+    NAPI_RETURN_UNDEFINED();
+  }
+
+  leveldb::Slice key = ToSlice(env, argv[1]);
+  leveldb::Slice value = ToSlice(env, argv[2]);
+  batch->Put(key, value);
+  DisposeSliceBuffer(key);
+  DisposeSliceBuffer(value);
 
   NAPI_RETURN_UNDEFINED();
 }
@@ -1972,13 +2065,19 @@ NAPI_METHOD(batch_del) {
   NAPI_ARGV(2);
   NAPI_BATCH_CONTEXT();
 
-  if (!batch->IsShared()) {
-    leveldb::Slice key = ToSlice(env, argv[1]);
-    batch->Del(key);
-    DisposeSliceBuffer(key);
-  } else {
-    napi_throw_error(env, 0, "Unsafe batch del.");
+  if (!batch->IsDBOpen()) {
+    napi_throw_error(env, 0, "Database is closed.");
+    NAPI_RETURN_UNDEFINED();
   }
+
+  if (batch->IsShared()) {
+    napi_throw_error(env, 0, "Unsafe batch del.");
+    NAPI_RETURN_UNDEFINED();
+  }
+
+  leveldb::Slice key = ToSlice(env, argv[1]);
+  batch->Del(key);
+  DisposeSliceBuffer(key);
 
   NAPI_RETURN_UNDEFINED();
 }
@@ -1990,12 +2089,17 @@ NAPI_METHOD(batch_clear) {
   NAPI_ARGV(1);
   NAPI_BATCH_CONTEXT();
 
-  if (!batch->IsShared()) {
-    batch->Clear();
-  } else {
-    napi_throw_error(env, 0, "Unsafe batch clear.");
+  if (!batch->IsDBOpen()) {
+    napi_throw_error(env, 0, "Database is closed.");
+    NAPI_RETURN_UNDEFINED();
   }
 
+  if (batch->IsShared()) {
+    napi_throw_error(env, 0, "Unsafe batch clear.");
+    NAPI_RETURN_UNDEFINED();
+  }
+
+  batch->Clear();
   NAPI_RETURN_UNDEFINED();
 }
 
@@ -2049,9 +2153,17 @@ NAPI_METHOD(batch_write) {
   const bool sync = BooleanProperty(env, options, "sync", false);
   napi_value callback = argv[2];
 
+  if (!batch->IsDBOpen()) {
+    napi_value argv = CreateError(env, "Database is closed.");
+    CallFunction(env, callback, 1, &argv);
+
+    NAPI_RETURN_UNDEFINED();
+  }
+
   if (batch->IsShared()) {
     napi_value argv = CreateError(env, "Unsafe batch write.");
     CallFunction(env, callback, 1, &argv);
+
     NAPI_RETURN_UNDEFINED();
   }
 

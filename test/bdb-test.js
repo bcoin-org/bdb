@@ -1,17 +1,12 @@
-/* eslint-env mocha */
-/* eslint prefer-arrow-callback: "off" */
-
 'use strict';
 
 const assert = require('bsert');
 const bdb = require('../');
 const vectors = require('./data/vectors.json');
-const os = require('os');
-const path = require('path');
+const {randomDBPath, rimrafSync} = require('./util/common');
 
 describe('BDB', function() {
-  const num = (Math.random() * 0x100000000) >>> 0;
-  const dbpath = path.join(os.tmpdir(), `bdb-test-${num}.db`);
+  const dbpath = randomDBPath('test');
   const tkey = bdb.key('t', ['hash160', 'uint32']);
   const prefix = bdb.key('r');
 
@@ -28,6 +23,7 @@ describe('BDB', function() {
   after(async () => {
     await db.close();
     assert.equal(db.loaded, false);
+    rimrafSync(dbpath);
   });
 
   it('put and get key and value', async () => {
