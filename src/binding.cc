@@ -479,6 +479,11 @@ struct Database {
       delete db_;
       db_ = NULL;
     }
+
+    if (filterPolicy_ != NULL) {
+      delete filterPolicy_;
+      filterPolicy_ = NULL;
+    }
   }
 
   /**
@@ -1008,6 +1013,15 @@ struct OpenWorker final : public BaseWorker {
 NAPI_METHOD(db_open) {
   NAPI_ARGV(4);
   NAPI_DB_CONTEXT();
+
+  napi_value callback = argv[3];
+
+  if (database->IsOpen()) {
+    napi_value argv = CreateError(env, "Database is already open.");
+    CallFunction(env, callback, 1, &argv);
+    NAPI_RETURN_UNDEFINED();
+  }
+
   NAPI_ARGV_UTF8_NEW(location, 1);
 
   napi_value options = argv[2];
@@ -1024,14 +1038,6 @@ NAPI_METHOD(db_open) {
   const uint32_t maxFileSize = Uint32Property(env, options, "maxFileSize", 2 << 20);
 
   database->blockCache_ = leveldb::NewLRUCache(cacheSize);
-
-  napi_value callback = argv[3];
-
-  if (database->IsOpen()) {
-    napi_value argv = CreateError(env, "Database is already open.");
-    CallFunction(env, callback, 1, &argv);
-    NAPI_RETURN_UNDEFINED();
-  }
 
   OpenWorker* worker = new OpenWorker(env, database, callback, location,
                                       createIfMissing, errorIfExists,
@@ -1063,6 +1069,7 @@ struct CloseWorker final : public BaseWorker {
 
   void DoFinally (napi_env env) override {
     database_->closing_ = false;
+    BaseWorker::DoFinally(env);
   }
 };
 
