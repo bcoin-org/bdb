@@ -335,6 +335,30 @@ describe('BDB', function() {
       assert.strictEqual(values[0].toString('hex'), vectors[0].value);
       assert.strictEqual(valuesIter.finished, true);
     });
+
+    it('should pass iterator to fn', async () => {
+      const valuesIter = bucket.valuesAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const filter = async function*(iter) {
+        for await (const item of iter) {
+          if (item[0] === 0x8b)
+            yield item;
+
+          continue;
+        }
+      };
+
+      const values = [];
+
+      for await (const value of filter(valuesIter))
+        values.push(value);
+
+      assert.strictEqual(values.length, 1);
+      assert.strictEqual(values[0][0], 0x8b);
+    });
   });
 
   describe('thread safety', function() {
