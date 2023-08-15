@@ -6,11 +6,11 @@
  * and see the performance hit/boost with the updated version.
  *
  * Usage:
- * node ./iter.js [--iterator=<type>] [--cacheSize=<bytes>] [--location=<path>]
+ * node ./iter.js [--iterator=<type>] [--items=<number>] [--location=<path>]
  *
  * Options:
  * - `iterator`  This can be "each" or "async".
- * - `cacheSize` The total number of items returned in a single next().
+ * - `items`     The total number of items to create.
  * - `location`  The location to store the db.
  *
  * Test cases:
@@ -47,12 +47,6 @@ const argConfig = {
     value: true,
     valid: l => path.isAbsolute(l),
     fallback: dbpath
-  },
-  'cacheSize': {
-    value: true,
-    parse: parseInt,
-    valid: a => Number.isSafeInteger(a) && a > 0,
-    fallback: 1000
   },
   'items': {
     value: true,
