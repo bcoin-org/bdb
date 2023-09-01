@@ -15,7 +15,7 @@ jobs:
         run: npm i -g bslint
 
       - name: Lint
-        run: npm run lint-ci
+        run: npm run lint
 
   build:
     name: Build & Test
