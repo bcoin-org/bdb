@@ -83,7 +83,42 @@ describe('BDB', function() {
       total++;
     });
 
-    assert.equal(total, 3);
+    assert.equal(total, vectors.length);
+  });
+
+  it('iterate over keys and values in a bucket (async)', async () => {
+    const mkey = bdb.key('m', ['hash160', 'uint32']);
+
+    const bucket = db.bucket(prefix.encode());
+
+    const batch = bucket.batch();
+
+    for (let i = 0; i < vectors.length; i++) {
+      const vector = vectors[i];
+      const key = mkey.encode(Buffer.from(vector.key[0], 'hex'), vector.key[1]);
+      const value = Buffer.from(vector.value, 'hex');
+      batch.put(key, value);
+    }
+
+    await batch.write();
+
+    const iter = bucket.iterator({
+      gte: mkey.min(),
+      lte: mkey.max(),
+      values: true
+    });
+
+    let total = 0;
+
+    for await (const {key, value} of iter) {
+      const [hash, index] = mkey.decode(key);
+      assert.equal(hash.toString('hex'), vectors[total].key[0]);
+      assert.equal(index, vectors[total].key[1]);
+      assert.equal(value.toString('hex'), vectors[total].value);
+      total++;
+    }
+
+    assert.equal(total, vectors.length);
   });
 
   it('delete key and value', async () => {
@@ -132,7 +167,7 @@ describe('BDB', function() {
         lte: nkey.max()
       });
 
-      assert.equal(keys.length, 3);
+      assert.equal(keys.length, vectors.length);
 
       for (let i = 0; i < keys.length; i++) {
         const [hash, index] = nkey.decode(keys[i]);
@@ -148,7 +183,7 @@ describe('BDB', function() {
         reverse: true
       });
 
-      assert.equal(keys.length, 3);
+      assert.equal(keys.length, vectors.length);
 
       keys.reverse();
 
@@ -157,6 +192,168 @@ describe('BDB', function() {
         assert.equal(hash.toString('hex'), vectors[i].key[0]);
         assert.equal(index, vectors[i].key[1]);
       }
+    });
+  });
+
+  describe('Async Iterator', function() {
+    let nkey, bucket = null;
+
+    before(async () => {
+      nkey = bdb.key('n', ['hash160', 'uint32']);
+      bucket = db.bucket(prefix.encode());
+
+      const batch = bucket.batch();
+
+      for (let i = 0; i < vectors.length; i++) {
+        const vector = vectors[i];
+
+        const key = nkey.encode(Buffer.from(vector.key[0], 'hex'),
+                                vector.key[1]);
+
+        const value = Buffer.from(vector.value, 'hex');
+
+        batch.put(key, value);
+      }
+
+      await batch.write();
+    });
+
+    it('in standard order', async () => {
+      const keysIter = bucket.keysAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const keys = [];
+
+      for await (const key of keysIter)
+        keys.push(key);
+
+      assert.equal(keys.length, vectors.length);
+
+      for (let i = 0; i < keys.length; i++) {
+        const [hash, index] = nkey.decode(keys[i]);
+        assert.equal(hash.toString('hex'), vectors[i].key[0]);
+        assert.equal(index, vectors[i].key[1]);
+      }
+    });
+
+    it('in reverse order', async () => {
+      const keysIter = bucket.keysAsync({
+        gte: nkey.min(),
+        lte: nkey.max(),
+        reverse: true
+      });
+
+      const keys = [];
+
+      for await (const key of keysIter)
+        keys.push(key);
+
+      assert.equal(keys.length, vectors.length);
+
+      keys.reverse();
+
+      for (let i = 0; i < keys.length; i++) {
+        const [hash, index] = nkey.decode(keys[i]);
+        assert.equal(hash.toString('hex'), vectors[i].key[0]);
+        assert.equal(index, vectors[i].key[1]);
+      }
+    });
+
+    it('should break and close iterator', async () => {
+      const valuesIter = bucket.valuesAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const values = [];
+
+      for await (const value of valuesIter) {
+        values.push(value);
+        break;
+      }
+
+      assert.strictEqual(values.length, 1);
+      assert.strictEqual(values[0].toString('hex'), vectors[0].value);
+      assert.strictEqual(valuesIter.finished, true);
+    });
+
+    it('should return and close iterator', async () => {
+      const valuesIter = bucket.valuesAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const values = [];
+
+      const fn = async () => {
+        for await (const value of valuesIter) {
+          values.push(value);
+          return;
+        }
+      };
+
+      await fn();
+
+      assert.strictEqual(values.length, 1);
+      assert.strictEqual(values[0].toString('hex'), vectors[0].value);
+      assert.strictEqual(valuesIter.finished, true);
+    });
+
+    it('should throw and close iterator', async () => {
+      const msg = 'Error at some point.';
+      const valuesIter = bucket.valuesAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const values = [];
+
+      const fn = async () => {
+        for await (const value of valuesIter) {
+          values.push(value);
+          throw new Error(msg);
+        }
+      };
+
+      let err;
+      try {
+        await fn();
+      } catch (e) {
+        err = e;
+      }
+
+      assert(err);
+      assert.strictEqual(err.message, msg);
+
+      assert.strictEqual(values.length, 1);
+      assert.strictEqual(values[0].toString('hex'), vectors[0].value);
+      assert.strictEqual(valuesIter.finished, true);
+    });
+
+    it('should pass iterator to fn', async () => {
+      const valuesIter = bucket.valuesAsync({
+        gte: nkey.min(),
+        lte: nkey.max()
+      });
+
+      const filter = async function*(iter) {
+        for await (const item of iter) {
+          if (item[0] === 0x8b)
+            yield item;
+
+          continue;
+        }
+      };
+
+      const values = [];
+
+      for await (const value of filter(valuesIter))
+        values.push(value);
+
+      assert.strictEqual(values.length, 1);
+      assert.strictEqual(values[0][0], 0x8b);
     });
   });
 

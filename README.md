@@ -4,7 +4,7 @@ Database for bcoin (leveldown backend).
 
 ## Usage
 
-``` js
+```javascript
 const bdb = require('bdb');
 const db = bdb.create('/path/to/my.db');
 
@@ -39,6 +39,22 @@ await iter.each((key, value) => {
   console.log('Index: %d', index);
   console.log('Value: %s', value.toString());
 });
+
+// Async Iterator is same, just used with for await syntax.:
+// From: `rt[0000000000000000000000000000000000000000][00000000]`
+// To: `rt[ffffffffffffffffffffffffffffffffffffffff][ffffffff]`
+const asyncIter = bucket.iterator({
+  gte: myKey.min(),
+  lte: myKey.max(),
+  values: true
+});
+
+for await (const {key, value} of asyncIter) {
+  const [hash, index] = myKey.decode(key);
+  console.log('Hash: %s', hash.toString('hex'));
+  console.log('Index: %d', index);
+  console.log('Value: %s', value.toString());
+}
 
 await db.close();
 ```
