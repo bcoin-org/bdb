@@ -5,7 +5,8 @@ const bdb = require('../');
 const vectors = require('./data/vectors.json');
 const {randomDBPath, rimrafSync} = require('./util/common');
 
-describe('BDB', function() {
+for (const memory of [false, true])
+describe(`BDB ${memory ? 'memory' : 'disk'}`, function() {
   const dbpath = randomDBPath('test');
   const tkey = bdb.key('t', ['hash160', 'uint32']);
   const prefix = bdb.key('r');
@@ -13,17 +14,24 @@ describe('BDB', function() {
   let db = null;
 
   before(async () => {
-    db = bdb.create(dbpath);
+    const options = memory ? { memory: true } : { location: dbpath };
+
+    db = bdb.create(options);
     await db.open();
-    assert.equal(db.location, dbpath);
-    assert.equal(db.loading, false);
-    assert.equal(db.loaded, true);
+
+    if (!memory) {
+      assert.equal(db.location, dbpath);
+      assert.equal(db.loading, false);
+      assert.equal(db.loaded, true);
+    }
   });
 
   after(async () => {
     await db.close();
-    assert.equal(db.loaded, false);
-    rimrafSync(dbpath);
+    if (!memory) {
+      assert.equal(db.loaded, false);
+      rimrafSync(dbpath);
+    }
   });
 
   it('put and get key and value', async () => {
