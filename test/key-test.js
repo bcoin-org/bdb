@@ -78,7 +78,7 @@ describe('Key', function() {
       assert.bufferEqual(key.root(), KEY_ID.buf);
     });
 
-    it.skip(`should create key for ${KEY_ID.str} (buf)`, () => {
+    it(`should create key for ${KEY_ID.str} (buf)`, () => {
       const key = bdb.key(KEY_ID.buf);
 
       assert.bufferEqual(key.encode(), KEY_ID.expected);
