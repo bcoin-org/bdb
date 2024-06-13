@@ -21,6 +21,16 @@ const KEY_IDS = [{
   num: 0x7a, // 'z'
   buf: Buffer.from('z', 'ascii'),
   expected: Buffer.from('z', 'ascii')
+}, {
+  str: 'aa',
+  num: null, // does not support.
+  buf: Buffer.from('aa', 'ascii'),
+  expected: Buffer.from('aa', 'ascii')
+}, {
+  str: 'abcd',
+  num: null, // does not support.
+  buf: Buffer.from('abcd', 'ascii'),
+  expected: Buffer.from('abcd', 'ascii')
 }];
 
 const KEY_OPS = [{
@@ -69,6 +79,11 @@ describe('Key', function() {
     });
 
     it(`should create key for ${KEY_ID.str} (num)`, () => {
+      if (KEY_ID.num == null) {
+        this.skip();
+        return;
+      }
+
       const key = bdb.key(KEY_ID.num);
 
       assert.bufferEqual(key.encode(), KEY_ID.expected);
